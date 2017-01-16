@@ -58,9 +58,9 @@ class TestBaseFlow(object):
         }
 
         self.flow_pre_run = \
-            ['tendrl.dummymodule.objects.myobject.atoms.pre_run1']
+            ['tendrl.dummymodule.objects.myobject.atoms.pre_run1.PreRun1']
         self.flow_post_run = \
-            ['tendrl.dummymodule.objects.myobject.atoms.post_run1']
+            ['tendrl.dummymodule.objects.myobject.atoms.post_run1.PostRun1']
         self.flow_parameters = {
             'Tendrl_context.cluster_id':
                 "61959242-628f-4847-a5e2-2c8d8daac0ab",
@@ -148,7 +148,8 @@ class TestBaseFlow(object):
                 'flows': {
                     'dummy_flow': {
                         'atoms': [
-                            'tendrl.dummymodule.objects.myobject.atoms.atom1'
+                            'tendrl.dummymodule.objects.myobject.atoms.atom1.'
+                            'Atom1'
                         ],
                         'help': 'dummy_flow',
                         'enabled': True,
@@ -161,11 +162,11 @@ class TestBaseFlow(object):
                         },
                         'pre_run': [
                             'tendrl.dummymodule.objects.myobject.atoms.'
-                            'pre_run1'
+                            'pre_run1.PreRun1'
                         ],
                         'post_run': [
                             'tendrl.dummymodule.objects.myobject.atoms.'
-                            'post_run1'
+                            'post_run1.PostRun1'
                         ],
                         'run': 'tendrl.dummymodule.flows.dummy_flow.DummyFlow',
                         'type': 'Create',
@@ -202,9 +203,9 @@ class TestBaseFlow(object):
         assert self.flow_obj.execute_atom.return_value is True
 
     def test_extract_atom_details(self):
-        name, enabled, help, inputs, outputs, uuid = \
+        name, enabled, help, inputs, outputs, uuid, mod = \
             self.flow_obj.extract_atom_details(
-                "tendrl.dummymodule.objects.myobject.atoms.pre_run1",
+                "tendrl.dummymodule.objects.myobject.atoms.pre_run1.PreRun1",
             )
         assert name == "pre_run1"
         assert enabled is True

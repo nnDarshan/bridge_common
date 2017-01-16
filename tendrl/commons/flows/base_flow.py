@@ -156,18 +156,19 @@ class BaseFlow(object):
         namespace = atom_name.split('.objects.')[0]
         object_name = atom_name.split('.objects.')[1].split('.atoms.')[0]
         atoms = self.definitions[namespace]['objects'][object_name]['atoms']
-        atom = atoms[atom_name.split('.')[-1]]
+        atom = atoms[atom_name.split('.')[-2]]
         return atom.get('name'), atom.get('enabled'), atom.get('help'), \
-            atom.get('inputs'), atom.get('outputs'), atom.get('uuid')
+            atom.get('inputs'), atom.get('outputs'), atom.get('uuid'), \
+            atom.get('run')
 
     # Executes a givem atom specific by given full module name "mod"
     # It dynamically imports the atom class from module as the_atom
     # and executes the function run() on the instance of same
     def execute_atom(self, mod):
         if "tendrl" in mod and "atoms" in mod:
-            atom_name, enabled, help, inputs, outputs, uuid = \
+            atom_name, enabled, help, inputs, outputs, uuid, atom_mod = \
                 self.extract_atom_details(mod)
-            the_atom = import_utils.load_abs_class(mod)
+            the_atom = import_utils.load_abs_class(atom_mod)
             try:
                 ret_val = the_atom(
                     atom_name,

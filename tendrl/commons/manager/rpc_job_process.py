@@ -104,7 +104,7 @@ class EtcdRPC(object):
             the_flow = import_utils.load_abs_class(flow_name)
             return the_flow(flow_name, atoms, help, enabled, inputs, pre_run,
                             post_run, type, uuid, job['parameters'],
-                            job, self.config, definitions).run()
+                            job, definitions).run()
 
     def extract_flow_details(self, flow_name, definitions):
         try:
