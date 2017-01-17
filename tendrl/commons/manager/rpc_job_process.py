@@ -54,6 +54,21 @@ class EtcdRPC(object):
                     continue
                 raw_job = json.loads(job.value.decode('utf-8'))
                 try:
+                    # Pick the job based on the the targeted tags field.
+                    # if targeted_tags has an entry then that job is picked
+                    # by this node only if this node has all the tags mentioned
+                    # in targeted tags field.
+                    if "targeted_tags" in raw_job and \
+                       len(raw_job["targeted_tags"]) > 0:
+                        node_tags = self.client.read(
+                            "/nodes/%s/Node_context/tags" %
+                            self.syncjobthread._manager.node_id
+                        ).split(",")
+                        if not set(
+                                raw_job["targeted_tags"]
+                        ).issubset(set(node_tags)):
+                            continue
+
                     # If current node's id does not fall under job's node_ids,
                     # ignore the job and dont process
                     if "node_ids" in raw_job:
