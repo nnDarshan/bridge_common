@@ -156,7 +156,7 @@ class BaseFlow(object):
         namespace = atom_name.split('.objects.')[0]
         object_name = atom_name.split('.objects.')[1].split('.atoms.')[0]
         atoms = self.definitions[namespace]['objects'][object_name]['atoms']
-        atom = atoms[atom_name.split('.')[-2]]
+        atom = atoms[atom_name.split('.')[-1]]
         return atom.get('name'), atom.get('enabled'), atom.get('help'), \
             atom.get('inputs'), atom.get('outputs'), atom.get('uuid'), \
             atom.get('run')
