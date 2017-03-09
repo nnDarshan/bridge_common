@@ -115,11 +115,11 @@ class JobConsumerThread(gevent.greenlet.Greenlet):
         except ValueError:
             pass
 
+        ns_str = ns.split(".")[-1]
+
         if "tendrl.flows" in flow_fqdn or "tendrl.objects" in flow_fqdn:
-            return NS, flow_name, obj_name
+            return getattr(NS, ns_str), flow_name, obj_name
 
         ns_str = ns.split(".")[-1]
         if "integrations" in ns:
             return getattr(NS.integrations, ns_str), flow_name, obj_name
-        else:
-            return getattr(NS, ns_str), flow_name, obj_name
