@@ -43,7 +43,7 @@ class ImportCluster(flows.BaseFlow):
         if "ceph" in sds_name.lower():
             node_context = NS.node_context.load()
             is_mon = False
-            for tag in node_context.tags:
+            for tag in node_context.tags.split(","):
                 if "ceph-mon" in tag:
                     is_mon = True
             if is_mon:
