@@ -85,6 +85,25 @@ class ImportCluster(flows.BaseFlow):
             )
         )
 
+        # in case of gluster after import we have to choose one node as
+        # provisioner and insall gdeploy and python-gdeploy in that node.
+        # after that set passwordless ssh between provisioner and other
+        # nodes of cluster.
+        # For this we have a job called setup_gdeploy. The node that picks
+        # up this job first will be chosen as the provisioner. But this
+        # job has to be fired from only the first node that picks up import
+        # cluster job. Solution: Job parameters dict will not have
+        # the "provisioner" field as it is user submitted job. Once we
+        # set this node as setup_gdeploy invoker node, we can update the
+        # job parameter dict by having a parameter "provisioner" set to
+        # False. So that no other node in the cluster will fire setup-
+        # gdeploy job
+        isCurrentNodeProvisioner = False
+        if "gluster" in self.parameters['DetectedCluster.sds_pkg_name'].lower():
+            isCurrentNodeProvisioner = self.parameters.get('provisioner', True)
+            self.parameters["provisioner"] = False
+
+
         node_list = self.parameters['Node[]']
         cluster_nodes = []
         if len(node_list) > 1:
@@ -222,8 +241,20 @@ class ImportCluster(flows.BaseFlow):
                     )
                 )
             import_gluster(self.parameters)
-
-            
+            if isCurrentNodeProvisioner:
+                new_params = self.parameters.copy()
+                payload = {
+                    "integration_id": integration_id,
+                    "node_ids": node_list,
+                    "run": "tendrl.flows.SetupGdeploy",
+                    "status": "new",
+                    "parameters": new_params,
+                    "parent": self.parameters['job_id'],
+                    "type": "node"
+                }
+                Job(job_id=str(uuid.uuid4()),
+                    status="new",
+                    payload=json.dumps(payload)).save()
             
         # Wait for all cluster nodes to finish their ImportCluster jobs
         if cluster_nodes:
@@ -246,7 +277,7 @@ class ImportCluster(flows.BaseFlow):
                     )
 
                     all_jobs_done = True
-                
+
             
         # import cluster's run() should not return unless the new cluster entry
         # is updated in etcd, as the job is marked as finished if this
