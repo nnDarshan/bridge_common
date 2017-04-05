@@ -4,6 +4,8 @@ import uuid
 from tendrl.commons.event import Event
 from tendrl.commons.message import Message
 from tendrl.commons.objects.job import Job
+from tendrl.commons.utils.ssh import authorize_key
+from tendrl.commons.utils import ansible_module_runner
 
 def to_camel_case(snake_str):
     return "".join(x.title() for x in snake_str.split('_'))
@@ -47,6 +49,49 @@ def ceph_create_ssh_setup_jobs(parameters):
 
 def gluster_create_ssh_setup_jobs(parameters):
     node_list = parameters['Node[]']
+
+    # Install python-gdeploy on the node
+    ansible_module_path = "core/packaging/os/yum.py"
+    attributes = {}
+    attributes["name"] = "gdeploy"
+    try:
+        runner = ansible_module_runner.AnsibleRunner(
+            ansible_module_path,
+            **attributes
+        )
+        runner.run()
+    except ansible_module_runner.AnsibleExecutableGenerationFailed:
+        raise FlowExecutionFailedError(
+            "Failed to install gdeploy"
+        )
+
+    attributes = {}
+    # Install python-gdeploy on the node
+    if NS.config.data['package_source_type'] == 'pip':
+        name = "https://github.com/Tendrl/python-gdeploy/archive/master.tar.gz"
+        attributes["name"] = name
+        attributes["editable"] = "false"
+        ansible_module_path = "core/packaging/language/pip.py"
+    elif NS.config.data['package_source_type'] == 'rpm':
+        name = "tendrl-python-gdeploy"
+        ansible_module_path = "core/packaging/os/yum.py"
+        attributes["name"] = name
+    else:
+        raise FlowExecutionFailedError(
+            "Failed to install python-gdeploy. Invalid package source type"
+        )
+
+    try:
+        runner = ansible_module_runner.AnsibleRunner(
+            ansible_module_path,
+            **attributes
+        )
+        runner.run()
+    except ansible_module_runner.AnsibleExecutableGenerationFailed:
+        raise FlowExecutionFailedError(
+            "Failed to install python-gdeploy"
+        )
+
     ssh_job_ids = []
     ssh_key, err = NS.gluster_provisioner.get_plugin().setup()
     if err != "":
@@ -62,6 +107,22 @@ def gluster_create_ssh_setup_jobs(parameters):
         )
         return ssh_job_ids
 
+    ret_val, err = authorize_key.AuthorizeKey(ssh_key).run()
+    if ret_val is not True or err != "":
+        Event(
+            Message(
+                job_id=parameters['job_id'],
+                flow_id=parameters['flow_id'],
+                priority="error",
+                publisher=NS.publisher_id,
+                payload={
+                    "message": "Error adding authorized key"
+                }
+            )
+        )
+        return ssh_job_ids
+    
+    node_list.remove(NS.node_context.node_id)
     for node in node_list:
         new_params = parameters.copy()
         new_params['Node[]'] = [node]

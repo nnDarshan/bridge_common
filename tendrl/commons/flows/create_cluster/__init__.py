@@ -45,6 +45,15 @@ class CreateCluster(flows.BaseFlow):
                 )
 
                 all_ssh_jobs_done = True
+                # set this node as gluster provisioner
+                if "gluster" in self.parameters["TendrlContext.sds_name"]:
+                    tags = ["provisioner/%s" % integration_id]
+                    NS.node_context = NS.node_context.load()
+                    current_tags = json.loads(NS.node_context.tags)
+                    tags += current_tags
+                    NS.node_context.tags = list(set(tags))
+                    NS.node_context.save()
+
 
         # SSH setup jobs finished above, now install sds bits and create cluster
         if "ceph" in self.parameters["TendrlContext.sds_name"]:
@@ -97,6 +106,8 @@ class CreateCluster(flows.BaseFlow):
         sds_pkg_name = NS.etcd_orm.client.read(
             "nodes/%s/DetectedCluster/sds_pkg_name" % self.parameters['Node[]'][0]
         ).value
+        if "gluster" in sds_pkg_name:
+            new_params['gdeploy_provisioned'] = True
         sds_pkg_version = NS.etcd_orm.client.read(
             "nodes/%s/DetectedCluster/sds_pkg_version" % self.parameters['Node[]'][0]
         ).value
