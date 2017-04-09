@@ -9,6 +9,7 @@ from tendrl.commons.message import Message
 from tendrl.commons.flows import utils
 from tendrl.commons.flows.create_cluster import ceph_help
 from tendrl.commons.flows.create_cluster import gluster_help
+from tendrl.commons.flows.exceptions import FlowExecutionFailedError
 from tendrl.commons.flows.import_cluster.ceph_help import import_ceph
 from tendrl.commons.flows.import_cluster.gluster_help import import_gluster
 from tendrl.commons.objects.job import Job
@@ -17,8 +18,14 @@ from tendrl.commons.objects.job import Job
 class CreateCluster(flows.BaseFlow):
     def run(self):
         integration_id = self.parameters['TendrlContext.integration_id']
+        if integration_id is None:
+            raise FlowExecutionFailedError("TendrlContext.integration_id cannot be empty")
+        supported_sds = NS.compiled_definitions.get_parsed_defs()['namespace.tendrl']['supported_sds']
+        sds_name = self.parameters["TendrlContext.sds_name"]
+        if sds_name not in supported_sds:
+            raise FlowExecutionFailedError("SDS (%s) not supported" % sds_name)
         ssh_job_ids = []
-        if "ceph" in self.parameters["TendrlContext.sds_name"]:
+        if "ceph" in sds_name:
             ssh_job_ids = utils.ceph_create_ssh_setup_jobs(self.parameters)
         else:
             ssh_job_ids = utils.gluster_create_ssh_setup_jobs(self.parameters)
@@ -44,7 +51,7 @@ class CreateCluster(flows.BaseFlow):
                 all_ssh_jobs_done = True
 
         # SSH setup jobs finished above, now install sds bits and create cluster
-        if "ceph" in self.parameters["TendrlContext.sds_name"]:
+        if "ceph" in sds_name:
             Event(
                 Message(
                     job_id=self.parameters['job_id'],
